@@ -36,7 +36,7 @@ TBD
 Make sure you have `cargo-make` installed. You can install it by running:
 
 ```asciidoc
-cargo install --no-default-features --force cargo-make
+cargo install --force cargo-make
 ```
 
 then call simply:
@@ -57,10 +57,11 @@ cargo make test
 cargo make publish
 ```
 
-**NOTE**: You need to set `REGISTRY_USERNAME` and `REGISTRY_PASSWORD`
-environment variables. By default, the registry is set to
-`ghcr.io/cardil/cloudevents-pretty-print`. You can change it by
-setting `REGISTRY` environment variable.
+**NOTE**: You need to be authorized to push the image to the registry 
+(proper access should be set in `~/.docker/config.json` file). By default, 
+the registry is set to `quay.io` and the image name to 
+`cardil/cloudevents-pretty-print`. You can change it by setting `REGISTRY` 
+and `IMAGE_NAME` environment variables.
 
 ## License
 

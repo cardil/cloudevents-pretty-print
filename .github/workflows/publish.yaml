@@ -1,24 +1,23 @@
 ---
-name: Test
+name: Publish
 
 on:
   push:
     branches:
-      - '**'
+      - 'release-*'
+      - 'main'
     tags:
       - 'v*.*.*'
-  pull_request:
-    branches:
-      - '**'
-  schedule:
-    - cron: "0 6 * * *" # Daily at 06:00.
 
 env:
   FORCE_COLOR: true
+  REGISTRY: quay.io
+  REGISTRY_USERNAME: ${{ secrets.REGISTRY_USERNAME }}
+  REGISTRY_PASSWORD: ${{ secrets.REGISTRY_PASSWORD }}
 
 jobs:
-  test:
-    name: CI
+  publish:
+    name: OCI Registry
     runs-on: ubuntu-latest
     steps:
       - uses: actions-rs/toolchain@v1
@@ -45,5 +44,14 @@ jobs:
           git pull --no-rebase upstream ${{ github.base_ref }}
         shell: bash
 
-      - name: Test
-        run: cargo make ci-flow
+      - name: Login to registry
+        uses: redhat-actions/podman-login@v1
+        if: ${{ env.REGISTRY_PASSWORD != '' }}
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ env.REGISTRY_USERNAME }}
+          password: ${{ env.REGISTRY_PASSWORD }}
+
+      - name: Publish
+        if: ${{ env.REGISTRY_PASSWORD != '' }}
+        run: cargo make publish

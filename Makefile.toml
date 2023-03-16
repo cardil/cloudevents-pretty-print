@@ -1,2 +1,38 @@
+[env]
+REGISTRY = "quay.io"
+IMAGE_NAME = "cardil/${CARGO_MAKE_PROJECT_NAME}"
+IMAGE_TAG = "latest"
+
 [tasks.build]
-args = ["build", "--target", "wasm32-wasi", "--release"]
+args = [
+  "build",
+  "--target", "wasm32-wasi",
+  "@@remove-empty(CARGO_MAKE_CARGO_VERBOSE_FLAGS)",
+  "@@split(CARGO_MAKE_CARGO_BUILD_TEST_FLAGS, )",
+]
+
+[tasks.build-release]
+args = [
+  "build",
+  "--target", "wasm32-wasi",
+  "--release",
+  "@@split(CARGO_MAKE_CARGO_BUILD_TEST_FLAGS, )"
+]
+
+[tasks.install-wasm-to-oci]
+script_runner = "@duckscript"
+script = '''
+file = set ./target/wasm-to-oci
+rm ${file}
+wget -O ${file} https://github.com/engineerd/wasm-to-oci/releases/download/v0.1.2/linux-amd64-wasm-to-oci
+chmod 755 ${file}
+'''
+
+[tasks.publish]
+dependencies = ["build-release", "install-wasm-to-oci"]
+command = "target/wasm-to-oci"
+args = [
+  "push",
+  "target/wasm32-wasi/release/cloudevents_pretty_print.wasm",
+  "${REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG}",
+]
