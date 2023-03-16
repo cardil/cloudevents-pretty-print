@@ -2,11 +2,17 @@
 REGISTRY = "quay.io"
 IMAGE_NAME = "cardil/${CARGO_MAKE_PROJECT_NAME}"
 IMAGE_TAG = "latest"
+DEFAULT_BUILD_FLAGS = "--target wasm32-wasi"
+BUILD_FLAGS = "${DEFAULT_BUILD_FLAGS}"
+BUILD_RELEASE_FLAGS = "${DEFAULT_BUILD_FLAGS} --release"
+
+[env.production]
+BUILD_FLAGS = "${BUILD_RELEASE_FLAGS}"
 
 [tasks.build]
 args = [
   "build",
-  "--target", "wasm32-wasi",
+  "@@split(BUILD_FLAGS, )",
   "@@remove-empty(CARGO_MAKE_CARGO_VERBOSE_FLAGS)",
   "@@split(CARGO_MAKE_CARGO_BUILD_TEST_FLAGS, )",
 ]
@@ -14,8 +20,8 @@ args = [
 [tasks.build-release]
 args = [
   "build",
-  "--target", "wasm32-wasi",
-  "--release",
+  "@@split(BUILD_RELEASE_FLAGS, )",
+  "@@remove-empty(CARGO_MAKE_CARGO_VERBOSE_FLAGS)",
   "@@split(CARGO_MAKE_CARGO_BUILD_TEST_FLAGS, )"
 ]
 

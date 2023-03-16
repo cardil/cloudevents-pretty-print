@@ -8,11 +8,10 @@ edition = "2021"
 crate-type = ["cdylib"]
 
 [dependencies]
-cloudevents-sdk = "0.7.0"
-serde_json = "1.0.64"
-wasm-bindgen = "0.2.63"
-chrono = "0.4.19"
-indent = "0.1.1"
+cloudevents-sdk = "^0.7"
+serde_json = "^1.0"
+chrono = "^0.4"
+indent = "^0.1"
 
 # `wee_alloc` is a tiny allocator for wasm that is only ~1K in code size
 # compared to the default allocator's ~10K. It is slower than the default
@@ -20,8 +19,7 @@ indent = "0.1.1"
 wee_alloc = { version = "0.4.5", optional = true }
 
 [dev-dependencies]
-wasm-bindgen-test = "0.3.13"
-indoc = "2"
+indoc = "^2"
 
 [profile.release]
 # Tell `rustc` to optimize for small code size.

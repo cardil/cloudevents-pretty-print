@@ -1,76 +1,96 @@
-use chrono::SecondsFormat;
-use cloudevents::{AttributesReader, Event};
-use serde_json;
-use wasm_bindgen::prelude::*;
+use std::ffi::{c_char, CStr, CString};
+use std::mem::transmute;
 
-// When the `wee_alloc` feature is enabled, use `wee_alloc` as the global
-// allocator.
-#[cfg(feature = "wee_alloc")]
-#[global_allocator]
-static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
+mod alloc;
+mod pp;
 
-#[wasm_bindgen]
-pub fn pp(ce: &str) -> String {
-    return serde_json::from_str(ce).map(|v| present(v)).unwrap();
+static mut DATA: *const CString = 0 as *const CString;
+
+#[no_mangle]
+pub unsafe extern "C" fn pp_free() {
+    if DATA == 0 as *const CString {
+        return;
+    }
+    unsafe {
+        let _ = transmute::<*const CString, Box<CString>>(DATA);
+        DATA = 0 as *const CString;
+    }
 }
 
-fn present(ce: Event) -> String {
-    let mut result = String::new();
-    result.push_str("☁️  cloudevents.Event\n");
-    result.push_str("Validation: valid\n");
-    result.push_str("Context Attributes,\n");
-    result.push_str(&format!("  specversion: {}\n", ce.specversion()));
-    result.push_str(&format!("  type: {}\n", ce.ty()));
-    result.push_str(&format!("  source: {}\n", ce.source()));
-    result.push_str(&format!("  id: {}\n", ce.id()));
-    if let Some(time) = ce.time() {
-        let t = time.to_rfc3339_opts(SecondsFormat::AutoSi, true);
-        result.push_str(&format!("  time: {}\n", t));
+#[no_mangle]
+pub extern "C" fn pp_print(ce_ptr: *const c_char) -> *const c_char {
+    let ce = unsafe {
+        pp_free();
+        CStr::from_ptr(ce_ptr)
+    };
+    let result = pp::pretty_print(ce.to_str().unwrap());
+    if result.is_err() {
+        return 0 as *const c_char;
     }
-    if let Some(subject) = ce.subject() {
-        result.push_str(&format!("  subject: {}\n", subject));
+    let cstr = CString::new(result.unwrap()).unwrap();
+    let boxed = Box::new(cstr);
+    unsafe {
+        DATA = transmute(boxed);
     }
-    if let Some(dataschema) = ce.dataschema() {
-        result.push_str(&format!("  dataschema: {}\n", dataschema));
+    unsafe {
+        return (&*DATA).as_ptr();
     }
-    if let Some(datacontenttype) = ce.datacontenttype() {
-        result.push_str(&format!("  datacontenttype: {}\n", datacontenttype));
-    }
-
-    let mut any_exts = false;
-    for (k, v) in ce.iter_extensions() {
-        if !any_exts {
-            result.push_str("Extensions,\n");
-            any_exts = true;
-        }
-        result.push_str(&format!("  {}: {}\n", k, v));
-    }
-    if let Some(data) = ce.data() {
-        let d = match data {
-            cloudevents::Data::Json(v) => {
-                let r = serde_json::to_string_pretty(v);
-                r.map(|s| indent::indent_all_by(2, s)).unwrap()
-            }
-            cloudevents::Data::Binary(v) => String::from_utf8(v.to_vec()).unwrap(),
-            cloudevents::Data::String(s) => s.to_string(),
-        };
-
-        result.push_str("Data,\n");
-        result.push_str(&format!("{}\n", d));
-    }
-
-    return result;
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::pp;
+    use std::ffi::{c_char, CStr, CString};
+
+    use indoc::indoc;
+    use serde_json::json;
+
+    use crate::{pp_free, pp_print};
 
     #[test]
-    fn test_pp() {
-        let json = include_str!("test/example-ce.json");
-        let want = include_str!("test/example-ce.txt");
-        let got = pp(json);
-        assert_eq!(got, want);
+    fn create_destroy() {
+        let res = with_pp(String::from("{}"));
+        assert!(res.is_none());
+    }
+
+    #[test]
+    fn print() {
+        let js = json!({
+          "specversion": "1.0",
+          "id": "60fd",
+          "source": "test/0.1",
+          "type": "dev.generic",
+        });
+        let ce = serde_json::to_string(&js).ok().unwrap();
+
+        let res = with_pp(ce);
+
+        assert!(res.is_some());
+        let got = res.unwrap();
+        assert_eq!(
+            got,
+            indoc! {r###"
+      ☁️  cloudevents.Event
+      Validation: valid
+      Context Attributes,
+        specversion: 1.0
+        type: dev.generic
+        source: test/0.1
+        id: 60fd
+      "###}
+        );
+    }
+
+    fn with_pp(ce: String) -> Option<String> {
+        let cstr = CString::new(ce).unwrap();
+        let ce_ptr = cstr.as_c_str();
+
+        let res = pp_print(ce_ptr.as_ptr());
+        if res == 0 as *const c_char {
+            return None;
+        }
+        let cstr = unsafe { CStr::from_ptr(res) };
+        let s = cstr.to_str().unwrap().to_string();
+        unsafe { pp_free() };
+        return Some(s);
     }
 }
