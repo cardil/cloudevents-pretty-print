@@ -1,0 +1,49 @@
+---
+name: Test
+
+on:
+  push:
+    branches:
+      - '**'
+    tags:
+      - 'v*.*.*'
+  pull_request:
+    branches:
+      - '**'
+  schedule:
+    - cron: "0 6 * * *" # Daily at 06:00.
+
+env:
+  FORCE_COLOR: true
+
+jobs:
+  test:
+    name: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: davidB/rust-cargo-make@v1
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          target: wasm32-wasi
+
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Merge upstream
+        if: github.event_name == 'pull_request'
+        run: |
+          if ! git config user.name > /dev/null; then
+            git config user.name "John Doe"
+          fi
+          if ! git config user.email > /dev/null; then
+            git config user.email "johndoe@localhost"
+          fi
+          git remote add upstream https://github.com/${{ github.repository }}.git
+          git pull --no-rebase upstream ${{ github.base_ref }}
+        shell: bash
+
+      - name: Test
+        run: cargo make ci-flow

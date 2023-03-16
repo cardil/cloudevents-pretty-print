@@ -1,0 +1,16 @@
+{
+  "specversion": "1.0",
+  "id": "60fd4b51-510c-4ce4-a058-e91704c74e6d",
+  "source": "kn-event/v1.6.0",
+  "type": "dev.knative.cli.plugin.event.generic",
+  "datacontenttype": "application/json",
+  "time": "2023-03-15T19:48:58.710062181Z",
+  "traceparent": "00-0af7651916cd43dd8448eb211c80319c-b9c7c989f97918e1-01",
+  "data": {
+    "a": {
+      "b": {
+        "c": "hello"
+      }
+    }
+  }
+}
