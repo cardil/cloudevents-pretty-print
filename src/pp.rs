@@ -1,7 +1,8 @@
+use std::error;
+
 use chrono::SecondsFormat;
 use cloudevents::{AttributesReader, Event};
 use serde_json;
-use std::error;
 
 type Result<T> = std::result::Result<T, Box<dyn error::Error>>;
 
