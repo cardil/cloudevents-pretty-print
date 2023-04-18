@@ -8,6 +8,7 @@ pub extern "C" fn pp_print(ce_ptr: *mut u8) -> i32 {
     let ce = unsafe { CStr::from_ptr(ce_ptr as *const c_char) };
     let result = pp::pretty_print(ce.to_str().unwrap());
     if result.is_err() {
+        eprintln!("Error: {}", result.expect_err("should be an error here"));
         return 1;
     }
     let str = result.unwrap();

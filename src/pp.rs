@@ -74,6 +74,15 @@ mod tests {
     }
 
     #[test]
+    fn test_malformed() {
+        let json = include_str!("test/malformed-ce.json");
+        let got = pretty_print(json);
+        assert!(got.is_err());
+        assert_eq!(got.expect_err("").to_string(),
+                   "invalid type: map, expected a string");
+    }
+
+    #[test]
     fn test_not_json() {
         let json = "not json";
         let got = pretty_print(json);
